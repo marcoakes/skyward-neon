@@ -1,3 +1,8 @@
+const PLAYER_SPEED = 270;
+const JUMP_VELOCITY = -620;
+const COYOTE_TIME_MS = 120;
+const JUMP_BUFFER_MS = 140;
+
 const LEVELS = [
     {
         name: 'Level 1: Launch Grid',
@@ -140,6 +145,9 @@ class SkywardScene extends Phaser.Scene {
         this.isInvulnerable = false;
         this.hasWon = false;
         this.touchState = { left: false, right: false, jump: false };
+        this.touchJumpWasDown = false;
+        this.lastGroundedAt = 0;
+        this.jumpQueuedAt = -Infinity;
         this.levelColliders = [];
 
         this.createTextures();
@@ -572,7 +580,11 @@ class SkywardScene extends Phaser.Scene {
             return;
         }
 
-        const onGround = this.player.body.touching.down;
+        const onGround = this.player.body.touching.down || this.player.body.blocked.down;
+        if (onGround) {
+            this.lastGroundedAt = this.time.now;
+        }
+
         if (!this.isTransitioning && !this.hasWon) {
             this.updatePlayerMovement(onGround);
         } else {
@@ -590,14 +602,21 @@ class SkywardScene extends Phaser.Scene {
     updatePlayerMovement(onGround) {
         const movingLeft = this.cursors.left.isDown || this.touchState.left;
         const movingRight = this.cursors.right.isDown || this.touchState.right;
-        const wantsJump = this.cursors.up.isDown || this.spaceKey.isDown || this.touchState.jump;
+        const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up)
+            || Phaser.Input.Keyboard.JustDown(this.spaceKey)
+            || (this.touchState.jump && !this.touchJumpWasDown);
+        this.touchJumpWasDown = this.touchState.jump;
+
+        if (jumpPressed) {
+            this.jumpQueuedAt = this.time.now;
+        }
 
         if (movingLeft) {
-            this.player.setVelocityX(-230);
+            this.player.setVelocityX(-PLAYER_SPEED);
             this.player.anims.play('left', true);
             this.emitRunDust(onGround, 1);
         } else if (movingRight) {
-            this.player.setVelocityX(230);
+            this.player.setVelocityX(PLAYER_SPEED);
             this.player.anims.play('right', true);
             this.emitRunDust(onGround, -1);
         } else {
@@ -605,8 +624,12 @@ class SkywardScene extends Phaser.Scene {
             this.player.anims.play('turn');
         }
 
-        if (wantsJump && onGround) {
-            this.player.setVelocityY(-430);
+        const canJump = onGround || this.time.now - this.lastGroundedAt <= COYOTE_TIME_MS;
+        const hasBufferedJump = this.time.now - this.jumpQueuedAt <= JUMP_BUFFER_MS;
+        if (hasBufferedJump && canJump) {
+            this.player.setVelocityY(JUMP_VELOCITY);
+            this.jumpQueuedAt = -Infinity;
+            this.lastGroundedAt = -Infinity;
             this.dustEmitter.emitParticleAt(this.player.x, this.player.y + 22, 12);
         }
     }
