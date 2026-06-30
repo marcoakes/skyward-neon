@@ -22,10 +22,77 @@
         canvas {
             display: block;
         }
+
+        .hud,
+        .banner {
+            position: fixed;
+            z-index: 5;
+            pointer-events: none;
+            color: #f6fbff;
+            text-shadow:
+                0 0 4px #050510,
+                0 0 8px #050510,
+                0 0 14px rgba(0, 229, 255, 0.42);
+            font-weight: 700;
+            letter-spacing: 0;
+            white-space: nowrap;
+            max-width: calc(100vw - 28px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hud {
+            top: 14px;
+            left: 14px;
+            font-size: clamp(13px, 2.2vw, 18px);
+        }
+
+        .banner {
+            top: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(17px, 3vw, 24px);
+            opacity: 0;
+        }
+
+        .banner.is-visible {
+            animation: banner-pulse 1.45s ease both;
+        }
+
+        @keyframes banner-pulse {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -10px);
+            }
+
+            18%,
+            72% {
+                opacity: 0.88;
+                transform: translate(-50%, 0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -12px);
+            }
+        }
+
+        @media (max-width: 520px) {
+            .hud {
+                top: 52px;
+                font-size: 12px;
+            }
+
+            .banner {
+                top: 18px;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 </head>
 <body>
+    <div id="hud" class="hud"></div>
+    <div id="banner" class="banner"></div>
     <script src="game.js"></script>
 </body>
 </html>
